@@ -28,32 +28,7 @@ class ChaseDreams extends HTMLElement {
     window.removeEventListener('resize', this.handleResize);
   }
 
-  async loadDependencies() {
-    try {
-      if (!window.gsap || !window.SplitText) {
-        await Promise.all([
-          this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js'),
-          this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/SplitText.min.js')
-        ]);
-        console.log('GSAP and SplitText loaded successfully');
-      }
-    } catch (error) {
-      console.error('Failed to load GSAP or SplitText:', error);
-    }
-  }
-
-  loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-      document.head.appendChild(script);
-    });
-  }
-
-  async render() {
+  render() {
     const text = this.getAttribute('text') || 'Chase Your Dreams';
     const headingTag = this.getAttribute('heading-tag') || 'h1';
     const fontSizeRaw = parseFloat(this.getAttribute('font-size')) || 45; // 0-100
@@ -103,7 +78,7 @@ class ChaseDreams extends HTMLElement {
           overflow-wrap: break-word;
           white-space: normal;
           line-height: 1.2;
-          opacity: 1; /* Ensure initial visibility */
+          opacity: 1;
         }
 
         .word {
@@ -116,43 +91,39 @@ class ChaseDreams extends HTMLElement {
       </div>
     `;
 
-    await this.loadDependencies();
+    // Check if GSAP and SplitText are available
+    if (window.gsap && window.SplitText) {
+      console.log('GSAP and SplitText detected, starting animation');
+      const elem = this.shadowRoot.querySelector('.text');
+      gsap.set(elem, { perspective: 400 });
 
-    if (!window.gsap || !window.SplitText) {
-      console.error('GSAP or SplitText not available after loading');
-      return; // Text remains visible without animation
+      const mySplitText = new SplitText(elem, { type: "words", delimiter: " " });
+      const words = mySplitText.words;
+      console.log('Split words:', words.length);
+
+      gsap.set(words, { opacity: 0, scale: 0, y: 80, rotationX: animationAngle });
+
+      const tl = gsap.timeline({ paused: true });
+      words.forEach((word, index) => {
+        word.classList.add('word');
+        tl.to(word, {
+          duration: animationDuration,
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          rotationX: 0,
+          transformOrigin: "0% 50% -50",
+          ease: animationEase
+        }, index * animationDelay);
+      });
+
+      requestAnimationFrame(() => {
+        console.log('Playing animation timeline');
+        tl.play();
+      });
+    } else {
+      console.warn('GSAP or SplitText not loaded, skipping animation');
     }
-
-    const elem = this.shadowRoot.querySelector('.text');
-    gsap.set(elem, { perspective: 400 });
-
-    const mySplitText = new SplitText(elem, { type: "words", delimiter: " " });
-    const words = mySplitText.words;
-    console.log('Split words:', words);
-
-    // Set initial state
-    gsap.set(words, { opacity: 0, scale: 0, y: 80, rotationX: animationAngle });
-
-    // Animate with timeline
-    const tl = gsap.timeline({ paused: true });
-    words.forEach((word, index) => {
-      word.classList.add('word');
-      tl.to(word, {
-        duration: animationDuration,
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        rotationX: 0,
-        transformOrigin: "0% 50% -50",
-        ease: animationEase
-      }, index * animationDelay);
-    });
-
-    // Play animation after DOM is ready
-    requestAnimationFrame(() => {
-      console.log('Starting animation');
-      tl.play();
-    });
   }
 }
 
