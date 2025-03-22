@@ -63,14 +63,13 @@ class ChaseDreams extends HTMLElement {
     const backgroundColor = this.getAttribute('background-color') || '#2A1B3D'; // Deep purple
     const animationDurationRaw = parseFloat(this.getAttribute('animation-duration')) || 20; // 0-100
     const animationDelayRaw = parseFloat(this.getAttribute('animation-delay')) || 10; // 0-100
-    const animationAngleRaw = parseFloat(this.getAttribute('animation-angle')) || 50; // 0-100
+    const animationAngle = parseFloat(this.getAttribute('animation-angle')) || 180; // 0-360
     const animationEase = this.getAttribute('animation-ease') || 'back';
 
-    // Rescale 0-100 to actual ranges
+    // Rescale 0-100 to actual ranges (except animationAngle, which is 0-360)
     const fontSize = 2 + (fontSizeRaw / 100) * (10 - 2); // 0-100 -> 2-10 vw
     const animationDuration = 0.1 + (animationDurationRaw / 100) * (1 - 0.1); // 0-100 -> 0.1-1 s
     const animationDelay = (animationDelayRaw / 100) * 0.5; // 0-100 -> 0-0.5 s
-    const animationAngle = (animationAngleRaw / 100) * 360; // 0-100 -> 0-360°
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -117,7 +116,6 @@ class ChaseDreams extends HTMLElement {
       </div>
     `;
 
-    // Load dependencies and animate
     await this.loadDependencies();
 
     if (!window.gsap || !window.SplitText) {
@@ -130,16 +128,15 @@ class ChaseDreams extends HTMLElement {
 
     const mySplitText = new SplitText(elem, { type: "words", delimiter: " " });
     const words = mySplitText.words;
+    console.log('Split words:', words);
 
-    // Add word class for styling
-    words.forEach(word => word.classList.add('word'));
-
-    // Set initial state to ensure visibility before animation
+    // Set initial state
     gsap.set(words, { opacity: 0, scale: 0, y: 80, rotationX: animationAngle });
 
-    // Create and play animation with a slight delay
-    const tl = gsap.timeline();
+    // Animate with timeline
+    const tl = gsap.timeline({ paused: true });
     words.forEach((word, index) => {
+      word.classList.add('word');
       tl.to(word, {
         duration: animationDuration,
         opacity: 1,
@@ -151,8 +148,11 @@ class ChaseDreams extends HTMLElement {
       }, index * animationDelay);
     });
 
-    // Start animation after a short delay to ensure DOM readiness
-    setTimeout(() => tl.play(), 100);
+    // Play animation after DOM is ready
+    requestAnimationFrame(() => {
+      console.log('Starting animation');
+      tl.play();
+    });
   }
 }
 
